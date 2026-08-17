@@ -1,5 +1,5 @@
 {
-  "name": "ai.log",
+  "name": "ai.log-cli",
   "version": "0.1.0",
   "description": "A local-first activity log for AI coding agents. See what your AI did.",
   "license": "MIT",
