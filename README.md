@@ -116,6 +116,22 @@ views.
 Options: `--session <id>` target a specific session, `--limit <n>` cap events,
 `--period <daily\|weekly>` report period, `--yes` skip confirmation prompts.
 
+### Going deeper
+
+```sh
+ai.log replay                 # full timeline with exit codes + gaps
+ai.log report --period weekly # last week, per actor/category
+ai.log report --period daily --json
+ai.log undo                   # preview: what the session changed
+ai.log undo --yes             # revert modified/deleted files, drop created ones
+ai.log undo --session alog_1m2e563w1x6k0a4f54655245
+```
+
+`ai.log undo` restores the exact files an agent touched during a session back
+to the git commit recorded when the session started — it never touches `.ailog`,
+never rewrites history, and previews every change before asking for
+confirmation.
+
 ---
 
 ## 🔎 How it works
@@ -208,7 +224,10 @@ missing fields fall back to defaults:
     "claude": true,
     "codex": true,
     "opencode": true,
-    "gemini": true
+    "gemini": true,
+    "cursor": true,
+    "aider": true,
+    "cline": true
   },
   // Paths the filesystem watcher never records
   "ignore": [
@@ -224,6 +243,10 @@ missing fields fall back to defaults:
   }
 }
 ```
+
+> Aider has no native hook system, so it is captured via process polling
+> (inferred, `confidence 0.5`) rather than hook events. Disable any agent by
+> setting its flag to `false` — it will not be watched or installed.
 
 Re-run hook installation anytime with `ai.log install` — it merges
 non-destructively, so your own agent settings and custom hooks are preserved.
