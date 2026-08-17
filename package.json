@@ -1,0 +1,43 @@
+{
+  "name": "ai.log",
+  "version": "0.1.0",
+  "description": "A local-first activity log for AI coding agents. See what your AI did.",
+  "license": "MIT",
+  "keywords": [
+    "ai",
+    "log",
+    "agent",
+    "activity",
+    "audit",
+    "claude-code",
+    "codex",
+    "opencode",
+    "gemini-cli"
+  ],
+  "bin": {
+    "ai.log": "dist/cli/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "test": "npm run build && node --test tests/",
+    "typecheck": "tsc --noEmit",
+    "lint": "tsc --noEmit"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.10.0",
+    "chokidar": "^4.0.3"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.12",
+    "@types/node": "^20.19.0",
+    "typescript": "^5.7.3"
+  }
+}
