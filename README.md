@@ -14,6 +14,8 @@ run, every failure — recorded honestly, kept on your machine, never sent anywh
 [![TypeScript](https://img.shields.io/badge/types-TypeScript%20strict-3178C6)](https://www.typescriptlang.org)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/lelianto/ai.log/pulls)
 
+</div>
+
 ---
 
 Your AI pair programmer works fast. *Do you know what it actually touched?*
@@ -40,8 +42,6 @@ Summary            128 command, 56 filesystem, 3 test, 1 security
 ```
 
 **100% local. Zero telemetry. Zero cloud. Zero bullshit.**
-
-</div>
 
 ## ✨ Highlights
 
