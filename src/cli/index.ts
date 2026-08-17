@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 import { parseArgs } from "./args";
 import { HELP, printVersion } from "./help";
 import { runInit } from "./commands/init";
