@@ -1,33 +1,28 @@
 import * as fs from "fs";
 import * as path from "path";
-import { findProjectDir, ensureAilogDir } from "../../core/project";
+import { requireProjectDir } from "../util";
 import { Database } from "../../storage/database";
-import { INBOX_DIR } from "../../core/paths";
+import { DB_FILE, INBOX_DIR } from "../../core/paths";
 
 export function clearHistory(flags: Map<string, string | boolean>): void {
-  let repoDir: string;
-  try {
-    repoDir = findProjectDir(process.cwd());
-  } catch {
-    console.error(`ai.log: no .ailog directory found in this workspace.\nRun "ai.log init" first.`);
-    process.exit(1);
-  }
-  const ailogDir = ensureAilogDir(repoDir);
+  const { ailogDir } = requireProjectDir();
 
   if (flags.get("yes") !== true) {
     process.stdout.write("Delete all recorded ai.log history? This cannot be undone. [y/N] ");
+    let answer: string;
     try {
-      const answer = fs.readFileSync(0, { encoding: "utf8" });
-      if (!/^y(es)?$/i.test(answer.trim())) {
-        console.log("Aborted.");
-        return;
-      }
+      answer = fs.readFileSync(0, { encoding: "utf8" });
     } catch {
+      console.error("ai.log: could not read confirmation from stdin.");
+      process.exit(1);
+    }
+    if (!/^y(es)?$/i.test(answer.trim())) {
+      console.log("Aborted.");
       return;
     }
   }
 
-  const db = new Database(path.join(ailogDir, "events.db"));
+  const db = new Database(path.join(ailogDir, DB_FILE));
   db.clearEvents();
   db.close();
 

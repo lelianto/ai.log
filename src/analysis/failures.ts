@@ -14,6 +14,11 @@ export class FailureDetector {
     const exit = typeof event.metadata?.exitCode === "number" ? (event.metadata.exitCode as number) : undefined;
     if (exit === undefined) return out;
 
+    // Adapters already emit action "fail" for failed commands; deriving a
+    // second fail event here would duplicate it (previously only suppressed
+    // by the pipeline's dedupe window).
+    if (event.action === "fail") return out;
+
     if (exit === 0) {
       if (TEST_COMMAND_RE.test(event.target ?? "")) {
         out.push(

@@ -13,7 +13,8 @@ export interface SecurityRule {
 
 const SENSITIVE_PATH_RULES: SecurityRule[] = [
   { id: "env-prod", name: "Sensitive environment file", pattern: /(^|\/)(\.env\.(prod|production|live))(\b|$)/i, risk: "high", reason: "Production environment file" },
-  { id: "env", name: "Environment file", pattern: /(^|\/)(\.env)(\b|$)/i, risk: "medium", reason: "Sensitive environment file" },
+  // .env.example / .env.local / .env.test / .env.dev are usually committed and safe to inspect
+  { id: "env", name: "Environment file", pattern: /(^|\/)(\.env)(?!(\.(example|local|test|dev)))(\b|$)/i, risk: "medium", reason: "Sensitive environment file" },
   { id: "ssh", name: "SSH credentials", pattern: /(^|\/)\.ssh(\/|$)/, risk: "high", reason: "SSH credentials directory" },
   { id: "pem-key", name: "Private key or certificate", pattern: /\.(pem|key|p12|pfx|p8|p8\.pub|crt|cer|der)$/i, risk: "high", reason: "Private key or certificate file" },
   { id: "aws-creds", name: "Cloud credentials", pattern: /(^|\/)(\.aws)(\/|$)|aws[-_]credentials|google[-_]application[-_]credentials|gcloud[-_].*key/i, risk: "high", reason: "Cloud credentials" },
@@ -24,7 +25,7 @@ const SENSITIVE_PATH_RULES: SecurityRule[] = [
 
 const DANGEROUS_COMMAND_PATTERNS: { id: string; name: string; pattern: RegExp; risk: Risk; reason: string }[] = [
   { id: "rm-rf", name: "Recursive force delete", pattern: /\brm\b\s+(?:-[a-z]*rf[a-z]*\b|--(?:recursive|force)\b)/i, risk: "high", reason: "Recursive force delete" },
-  { id: "sudo", name: "Privilege escalation", pattern: /^\s*sudo\b/i, risk: "medium", reason: "Privilege escalation" },
+  { id: "sudo", name: "Privilege escalation", pattern: /(^|[;&|]\s*)sudo\b/i, risk: "medium", reason: "Privilege escalation" },
   { id: "chmod", name: "File mode change", pattern: /\bchmod\b/i, risk: "medium", reason: "Changing file permissions" },
   { id: "chown", name: "File ownership change", pattern: /\bchown\b/i, risk: "medium", reason: "Changing file ownership" },
   { id: "git-reset-hard", name: "Hard git reset", pattern: /\bgit\s+reset\s+--hard\b/i, risk: "high", reason: "Destructive git reset" },

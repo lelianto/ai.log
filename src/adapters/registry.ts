@@ -17,7 +17,3 @@ const ADAPTERS: Record<Agent, Adapter> = {
 export function getIncomingAdapter(agent: Agent): Adapter | undefined {
   return ADAPTERS[agent];
 }
-
-export function allAdapters(): Adapter[] {
-  return Object.values(ADAPTERS);
-}

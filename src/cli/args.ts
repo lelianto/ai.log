@@ -13,13 +13,9 @@ export const FLAG_DEFAULTS: Record<string, "boolean" | "string"> = {
   yes: "boolean",
   help: "boolean",
   version: "boolean",
-  quiet: "boolean",
-  force: "boolean",
   agent: "string",
   cwd: "string",
   limit: "string",
-  repo: "string",
-  session: "string",
 };
 
 export function parseArgs(argv: string[]): ParsedArgs {
@@ -28,7 +24,6 @@ export function parseArgs(argv: string[]): ParsedArgs {
 
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
-    if (typeof arg !== "string") continue;
     if (arg === "--") {
       positionals.push(...argv.slice(i + 1));
       break;
@@ -44,11 +39,11 @@ export function parseArgs(argv: string[]): ParsedArgs {
       if (kind === "string") {
         const value = argv[i + 1];
         if (value === undefined || value.startsWith("--")) {
-          flags.set(name, true);
-        } else {
-          flags.set(name, value);
-          i += 1;
+          console.error(`ai.log: flag --${name} requires a value`);
+          process.exit(1);
         }
+        flags.set(name, value);
+        i += 1;
       } else {
         flags.set(name, true);
       }

@@ -1,6 +1,6 @@
 import type { HookPayload } from "./types";
 import { MAX_TARGET_LENGTH, sanitizeString } from "../core/events";
-import { redactCommand } from "../security/redact";
+import { isSensitiveKeyMatch, redactCommand, redactString } from "../security/redact";
 
 export function str(v: unknown): string | undefined {
   return typeof v === "string" && v.length > 0 ? v : undefined;
@@ -29,24 +29,41 @@ export function has(obj: Record<string, unknown> | undefined, ...keys: string[])
   return keys.some((k) => Object.prototype.hasOwnProperty.call(obj, k));
 }
 
+function toolInputOf(payload: HookPayload | undefined): Record<string, unknown> | undefined {
+  if (!payload) return undefined;
+  const v = payload.tool_input ?? payload.input ?? payload.arguments;
+  return v !== null && typeof v === "object" && !Array.isArray(v) ? (v as Record<string, unknown>) : undefined;
+}
+
+function responseOf(payload: HookPayload): Record<string, unknown> | undefined {
+  const v = payload.tool_response ?? payload.result ?? payload.output;
+  return v !== null && typeof v === "object" && !Array.isArray(v) ? (v as Record<string, unknown>) : undefined;
+}
+
 export function filePathOf(payload: HookPayload | undefined): string | undefined {
   if (!payload) return undefined;
-  const toolInput = (payload.tool_input ?? payload.input ?? payload.arguments ?? {}) as Record<string, unknown> | undefined;
-  const fromToolInput = firstString(toolInput, "file_path", "filePath", "path", "filename", "file");
+  const fromToolInput = firstString(toolInputOf(payload), "file_path", "filePath", "path", "filename", "file");
   if (fromToolInput) return fromToolInput;
   return firstString(payload, "file_path", "filePath", "path", "filename");
 }
 
+function commandFromItem(c: unknown): string {
+  if (typeof c === "string") return c.trim();
+  if (c !== null && typeof c === "object") {
+    const command = (c as Record<string, unknown>).command;
+    if (typeof command === "string") return command.trim();
+  }
+  return "";
+}
+
 export function commandOf(payload: HookPayload | undefined): string | undefined {
   if (!payload) return undefined;
-  const toolInput = (payload.tool_input ?? payload.input ?? payload.arguments ?? {}) as Record<string, unknown> | undefined;
+  const toolInput = toolInputOf(payload);
   const direct = firstString(toolInput, "command", "cmd", "shell_command");
   if (direct) return redactCommand(direct);
   const list = Array.isArray(toolInput?.commands) ? (toolInput.commands as unknown[]) : undefined;
   if (list) {
-    const parts = list
-      .map((c) => (typeof c === "string" ? c.trim() : typeof c === "object" && c !== null && typeof (c as Record<string, unknown>).command === "string" ? ((c as Record<string, unknown>).command as string).trim() : ""))
-      .filter((s) => s.length > 0);
+    const parts = list.map(commandFromItem).filter((s) => s.length > 0);
     if (parts.length > 0) return redactCommand(parts.join("\n"));
   }
   if (typeof toolInput?.code === "string" && toolInput.code.length < 2048) return redactCommand(toolInput.code);
@@ -60,12 +77,12 @@ export function sanitizeTarget(v: string | undefined, fallback = "unknown"): str
 
 export function urlOf(payload: HookPayload | undefined): string | undefined {
   if (!payload) return undefined;
-  const toolInput = (payload.tool_input ?? payload.input ?? payload.arguments ?? {}) as Record<string, unknown> | undefined;
-  return firstString(toolInput, "url", "uri") ?? firstString(payload, "url", "uri");
+  const url = firstString(toolInputOf(payload), "url", "uri") ?? firstString(payload, "url", "uri");
+  return url ? redactString(url, false) : undefined;
 }
 
 export function isFailure(payload: HookPayload): boolean {
-  const response = (payload.tool_response ?? payload.result ?? payload.output ?? {}) as Record<string, unknown> | undefined;
+  const response = responseOf(payload);
   if (response && (has(response, "error", "failed", "failure", "is_error") || has(payload, "error"))) {
     const error = response.error ?? payload.error;
     if (error !== undefined && error !== null && error !== false && error !== "" && error !== "0") return true;
@@ -78,11 +95,46 @@ export function isFailure(payload: HookPayload): boolean {
 }
 
 export function exitCodeOf(payload: HookPayload): number | undefined {
-  const response = (payload.tool_response ?? payload.result ?? payload.output ?? {}) as Record<string, unknown> | undefined;
+  const response = responseOf(payload);
   const exit = num(payload.exit_code ?? payload.exitCode ?? response?.exit_code ?? response?.exit ?? response?.exitCode);
   return exit !== undefined ? Math.trunc(exit) : undefined;
 }
 
-export function environCwd(payload: HookPayload, fallback: string): string {
-  return str(payload.cwd ?? payload.workingDirectory ?? payload.working_dir) ?? fallback;
+const REDACT_DEPTH = 3;
+const MAX_REDACT_ARRAY_ITEMS = 64;
+const PLACEHOLDER = "[REDACTED]";
+
+/**
+ * Recursively masks likely secret values in a raw agent payload. Applied
+ * before the payload is written to disk (ingest) and when it is read back
+ * (inbox tail), so secrets never sit in the spool unredacted. Keys whose
+ * names match a sensitive stem have their whole value replaced; `command`/
+ * `cmd`/`shell_command`/`code` values are redacted as commands; `url`/`uri`
+ * values keep only their secret query parameters masked. Idempotent:
+ * already-redacted values are left untouched.
+ */
+export function redactPayload(payload: Record<string, unknown>): Record<string, unknown> {
+  return walkPayload(payload, 0) as Record<string, unknown>;
+}
+
+function walkPayload(value: unknown, depth: number): unknown {
+  if (depth > REDACT_DEPTH) return value;
+  if (Array.isArray(value)) {
+    return value.slice(0, MAX_REDACT_ARRAY_ITEMS).map((v) => walkPayload(v, depth + 1));
+  }
+  if (value !== null && typeof value === "object") {
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+      if (typeof v === "string") {
+        if (isSensitiveKeyMatch(k)) out[k] = v === PLACEHOLDER ? v : PLACEHOLDER;
+        else if (k === "command" || k === "cmd" || k === "shell_command" || k === "code") out[k] = redactCommand(v);
+        else if (k === "url" || k === "uri") out[k] = redactString(v, false);
+        else out[k] = v;
+      } else {
+        out[k] = walkPayload(v, depth + 1);
+      }
+    }
+    return out;
+  }
+  return value;
 }

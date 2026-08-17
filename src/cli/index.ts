@@ -22,44 +22,49 @@ export function main(argv: string[]): void {
     return;
   }
 
-  if (command === null || command === "") {
-    runShow(flags);
-    return;
-  }
-
-  if (!KNOWN_COMMANDS.has(command)) {
-    console.error(`ai.log: unknown command "${command}"\n`);
-    console.error(HELP);
-    process.exit(1);
-  }
-
-  switch (command) {
-    case "init":
-      runInit(process.cwd());
-      break;
-    case "start":
-      runStart();
-      break;
-    case "stop":
-      runStop();
-      break;
-    case "status":
-      runStatus();
-      break;
-    case "clear":
-      clearHistory(flags);
-      break;
-    case "ingest": {
-      const agent = flags.get("agent");
-      const cwd = flags.get("cwd");
-      runIngest(typeof agent === "string" ? agent : undefined, typeof cwd === "string" ? cwd : undefined);
-      break;
+  try {
+    if (command === null || command === "") {
+      runShow(flags);
+      return;
     }
-    case "install":
-      runInstall();
-      break;
-    default:
+
+    if (!KNOWN_COMMANDS.has(command)) {
+      console.error(`ai.log: unknown command "${command}"\n`);
+      console.error(HELP);
       process.exit(1);
+    }
+
+    switch (command) {
+      case "init":
+        runInit(process.cwd());
+        break;
+      case "start":
+        runStart();
+        break;
+      case "stop":
+        runStop();
+        break;
+      case "status":
+        runStatus();
+        break;
+      case "clear":
+        clearHistory(flags);
+        break;
+      case "ingest": {
+        const agent = flags.get("agent");
+        const cwd = flags.get("cwd");
+        runIngest(typeof agent === "string" ? agent : undefined, typeof cwd === "string" ? cwd : undefined);
+        break;
+      }
+      case "install":
+        runInstall();
+        break;
+      default:
+        process.exit(1);
+    }
+  } catch (err) {
+    console.error(`ai.log: ${err instanceof Error ? err.message : String(err)}`);
+    process.exit(1);
   }
 }
 

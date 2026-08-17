@@ -1,18 +1,11 @@
 import * as path from "path";
-import { findProjectDir, ensureAilogDir, isDaemonRunning } from "../../core/project";
+import { requireProjectDir, openDb, fail } from "../util";
+import { isDaemonRunning } from "../../core/project";
 import { spawnDaemon } from "../../daemon/spawn";
 import { isPidAlive, readDaemonPid } from "../../daemon/state";
-import { Database } from "../../storage/database";
 
 export function runStart(): void {
-  let repoDir: string;
-  try {
-    repoDir = findProjectDir(process.cwd());
-  } catch {
-    console.error(`ai.log: no .ailog directory found in this workspace.\nRun "ai.log init" first.`);
-    process.exit(1);
-  }
-  const ailogDir = ensureAilogDir(repoDir);
+  const { repoDir, ailogDir } = requireProjectDir();
 
   if (isDaemonRunning(ailogDir)) {
     const pid = readDaemonPid(ailogDir);
@@ -25,8 +18,7 @@ export function runStart(): void {
   try {
     spawned = spawnDaemon(ailogDir, repoDir);
   } catch (err) {
-    console.error(`ai.log: ${String(err)}`);
-    process.exit(1);
+    fail(String(err));
   }
 
   waitForSession(ailogDir, repoDir, spawned.pid, () => {
@@ -49,8 +41,7 @@ function waitForSession(ailogDir: string, repoDir: string, pid: number, cb: () =
   const deadline = Date.now() + 5000;
   const check = (): void => {
     if (!isPidAlive(pid)) {
-      console.error(`ai.log: daemon exited during startup. Check ${path.join(ailogDir, "daemon.log")}`);
-      process.exit(1);
+      fail(`daemon exited during startup. Check ${path.join(ailogDir, "daemon.log")}`);
     }
     const db = openDb(ailogDir);
     const session = db.getActiveSession(repoDir);
@@ -64,19 +55,8 @@ function waitForSession(ailogDir: string, repoDir: string, pid: number, cb: () =
   check();
 }
 
-function openDb(ailogDir: string): Database {
-  return new Database(path.join(ailogDir, "events.db"));
-}
-
 export function runStop(): void {
-  let repoDir: string;
-  try {
-    repoDir = findProjectDir(process.cwd());
-  } catch {
-    console.error(`ai.log: no .ailog directory found in this workspace.\nRun "ai.log init" first.`);
-    process.exit(1);
-  }
-  const ailogDir = ensureAilogDir(repoDir);
+  const { ailogDir } = requireProjectDir();
   const pid = readDaemonPid(ailogDir);
 
   if (pid === null || !isPidAlive(pid)) {

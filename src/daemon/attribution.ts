@@ -7,6 +7,14 @@ const HOOK_MATCH_WINDOW_MS = 15000;
 const AGENT_ACTIVE_WINDOW_MS = 60000;
 const RING_SIZE = 512;
 
+// Confidence ladder for inferred events: a hook matched a recent file
+// target (0.85) > an agent is recently active (0.5) > nothing known (0.25).
+const CONFIDENCE = {
+  HOOK_MATCH: 0.85,
+  ACTIVE_AGENT: 0.5,
+  UNKNOWN: 0.25,
+} as const;
+
 interface HookFingerprint {
   time: number;
   actor: string;
@@ -61,12 +69,12 @@ export class AttributionEngine {
   }
 
   private attributeFilesystem(e: AILogEvent): AILogEvent {
-    if (!e.target) return { ...e, actor: "unknown", confidence: 0.25, observed: false };
+    if (!e.target) return { ...e, actor: "unknown", confidence: CONFIDENCE.UNKNOWN, observed: false };
     const now = Date.parse(e.timestamp) || Date.now();
 
     const match = this.recentHooks.find((h) => h.target === e.target && h.actor !== "system" && now - h.time <= HOOK_MATCH_WINDOW_MS);
     if (match) {
-      return { ...e, actor: match.actor as AILogEvent["actor"], confidence: 0.85, observed: false };
+      return { ...e, actor: match.actor as AILogEvent["actor"], confidence: CONFIDENCE.HOOK_MATCH, observed: false };
     }
 
     let active: { agent: string; time: number } | null = null;
@@ -76,10 +84,10 @@ export class AttributionEngine {
       }
     }
     if (active) {
-      return { ...e, actor: active.agent as AILogEvent["actor"], confidence: 0.5, observed: false };
+      return { ...e, actor: active.agent as AILogEvent["actor"], confidence: CONFIDENCE.ACTIVE_AGENT, observed: false };
     }
 
-    return { ...e, actor: "unknown", confidence: 0.25, observed: false };
+    return { ...e, actor: "unknown", confidence: CONFIDENCE.UNKNOWN, observed: false };
   }
 
   private recordHook(e: AILogEvent): void {

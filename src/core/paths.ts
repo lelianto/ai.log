@@ -1,5 +1,6 @@
 import * as fs from "fs";
 import * as path from "path";
+import { execFileSync } from "child_process";
 
 export const AILOG_DIR = ".ailog";
 export const INBOX_DIR = "inbox";
@@ -22,7 +23,6 @@ export function findAilogDir(startDir: string): string | null {
 }
 
 export function gitRoot(startDir: string): string | null {
-  const { execFileSync } = require("child_process");
   try {
     const out = execFileSync("git", ["rev-parse", "--show-toplevel"], {
       cwd: startDir,
@@ -34,10 +34,4 @@ export function gitRoot(startDir: string): string | null {
   } catch {
     return null;
   }
-}
-
-export function safeJoin(base: string, rel: string): string | null {
-  const target = path.resolve(base, rel);
-  if (target !== base && !target.startsWith(base + path.sep)) return null;
-  return target;
 }

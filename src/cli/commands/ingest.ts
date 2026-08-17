@@ -2,6 +2,7 @@ import * as fs from "fs";
 import * as path from "path";
 import { findAilogDir, INBOX_DIR } from "../../core/paths";
 import { isAgent } from "../../core/constants";
+import { redactPayload } from "../../adapters/common";
 
 const MAX_INPUT_BYTES = 1024 * 1024;
 const MAX_LINE_BYTES = 256 * 1024;
@@ -40,6 +41,7 @@ export function runIngest(agent: string | undefined, cwdArg: string | undefined)
     process.exit(0);
   }
   if (payload === null || typeof payload !== "object" || Array.isArray(payload)) process.exit(0);
+  payload = redactPayload(payload as Record<string, unknown>);
 
   const cwd = cwdArg || (typeof (payload as Record<string, unknown>).cwd === "string" ? ((payload as Record<string, unknown>).cwd as string) : undefined) || process.cwd();
   dbg(`cwd=${cwd}`);

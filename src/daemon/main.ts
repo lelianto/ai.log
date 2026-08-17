@@ -7,6 +7,8 @@ if (!repoDir) {
   process.exit(1);
 }
 
+console.error(`[ai.log] daemon starting (cwd ${process.cwd()})`);
+
 runDaemon(repoDir).catch((err) => {
   console.error(`[ai.log] fatal: ${String(err)}`);
   process.exit(1);

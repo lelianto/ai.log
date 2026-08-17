@@ -4,13 +4,7 @@ import chokidar from "chokidar";
 import { newEvent, type AILogEvent } from "../core/events";
 import { isIgnored, type AILogConfig } from "../core/config";
 
-export type FsEventType = "create" | "write" | "delete";
-
-export interface RawFsEvent {
-  type: FsEventType;
-  relPath: string;
-  isDir: boolean;
-}
+type FsEventType = "create" | "write" | "delete";
 
 /**
  * Watches the repository working tree. Only CREATE / WRITE / DELETE for files
@@ -24,7 +18,6 @@ export function watchRepo(repoDir: string, config: AILogConfig, cb: (event: AILo
     if (isIgnored(rel, config)) return;
     if (stats && !stats.isFile()) return;
 
-    const isDir = stats?.isDirectory() === true;
     const event = newEvent({
       sessionId: "",
       repository: repoDir,
@@ -33,11 +26,9 @@ export function watchRepo(repoDir: string, config: AILogConfig, cb: (event: AILo
       action: type,
       source: "filesystem",
       target: rel,
-      metadata: { observed: false },
       confidence: 0.25,
       observed: false,
     });
-    if (isDir && type === "write") return;
     cb(event);
   };
 

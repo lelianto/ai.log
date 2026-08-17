@@ -52,23 +52,6 @@ export async function runDaemon(repoDir: string): Promise<void> {
 
   dependencies.snapshot(session.session.id, repoDir);
 
-  const shutdown = (): void => {
-    console.error(`[ai.log] stopping session ${session.session.id}`);
-    pipeline.stop();
-    try {
-      stopSession(db, session.session.id);
-    } catch (err) {
-      console.error(`[ai.log] stop error: ${String(err)}`);
-    }
-    db.close();
-    removeDaemonPid(ailogDir);
-    process.exit(0);
-  };
-  process.on("SIGTERM", shutdown);
-  process.on("SIGINT", shutdown);
-  process.on("uncaughtException", (err) => console.error(`[ai.log] uncaught: ${String(err)}`));
-  process.on("unhandledRejection", (err) => console.error(`[ai.log] unhandled: ${String(err)}`));
-
   const emit = (event: AILogEvent): void => {
     pipeline.ingest(event);
     for (const derived of security.scan(event)) pipeline.ingest(derived);
@@ -83,8 +66,8 @@ export async function runDaemon(repoDir: string): Promise<void> {
 
   fs.mkdirSync(path.join(ailogDir, INBOX_DIR), { recursive: true });
 
-  watchRepo(repoDir, config, (fsEvent) => attach(fsEvent));
-  tailInbox(ailogDir, (payload) => {
+  const stopWatcher = watchRepo(repoDir, config, (fsEvent) => attach(fsEvent));
+  const stopInbox = tailInbox(ailogDir, (payload) => {
     const e = attribution.fromHookPayload(payload, session.session.id, repoDir);
     if (e) emit(e);
   });
@@ -92,7 +75,7 @@ export async function runDaemon(repoDir: string): Promise<void> {
 
   pipeline.start();
 
-  setInterval(() => {
+  const headTimer = setInterval(() => {
     try {
       const head = gitHead(repoDir);
       const branch = gitBranch(repoDir);
@@ -100,7 +83,38 @@ export async function runDaemon(repoDir: string): Promise<void> {
     } catch {
       // ignore
     }
-  }, HEAD_POLL_MS).unref();
+  }, HEAD_POLL_MS);
+  headTimer.unref();
+
+  let shutdownDone = false;
+  const shutdown = (): void => {
+    if (shutdownDone) return;
+    shutdownDone = true;
+    console.error(`[ai.log] stopping session ${session.session.id}`);
+    clearInterval(headTimer);
+    stopWatcher();
+    stopInbox();
+    pipeline.stop();
+    try {
+      stopSession(db, session.session.id);
+    } catch (err) {
+      console.error(`[ai.log] stop error: ${String(err)}`);
+    }
+    db.close();
+    removeDaemonPid(ailogDir);
+    process.exit(0);
+  };
+
+  process.on("SIGTERM", shutdown);
+  process.on("SIGINT", shutdown);
+  process.on("uncaughtException", (err) => {
+    console.error(`[ai.log] uncaught: ${err instanceof Error ? err.stack ?? String(err) : String(err)}`);
+    shutdown();
+  });
+  process.on("unhandledRejection", (err) => {
+    console.error(`[ai.log] unhandled: ${String(err)}`);
+    shutdown();
+  });
 
   console.error(`[ai.log] watching ${repoDir}`);
 }

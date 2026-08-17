@@ -1,6 +1,6 @@
 import DatabaseModule from "better-sqlite3";
 import type { AILogEvent } from "../core/events";
-import type { Actor, Category, Risk } from "../core/constants";
+import type { Actor, Category, Risk, Source } from "../core/constants";
 import { MIGRATIONS } from "./migrations";
 
 export interface SessionRow {
@@ -24,7 +24,7 @@ export interface EventRow {
   action: string;
   target: string | null;
   metadata: string | null;
-  source: string;
+  source: Source;
   confidence: number;
   risk: Risk;
   observed: number;

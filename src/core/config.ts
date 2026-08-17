@@ -69,11 +69,6 @@ function validateConfig(cfg: unknown): AILogConfig {
   if (c.ignore !== undefined) {
     if (!Array.isArray(c.ignore)) throw new Error("config ignore must be an array of directory names");
     out.ignore = c.ignore.filter(isSafeIgnoreEntry);
-    const extra = out.ignore.length !== c.ignore.length;
-    if (extra) {
-      out.ignore.length = 0;
-      for (const v of c.ignore) if (isSafeIgnoreEntry(v)) out.ignore.push(v);
-    }
   }
 
   if (c.security !== undefined) {

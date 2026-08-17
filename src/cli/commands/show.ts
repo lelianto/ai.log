@@ -1,51 +1,37 @@
-import * as path from "path";
-import { findProjectDir, ensureAilogDir } from "../../core/project";
-import { Database, rowToEvent } from "../../storage/database";
+import { requireProjectDir, openDb, formatTime, truncate, clamp } from "../util";
+import { rowToEvent } from "../../storage/database";
+import type { SessionRow } from "../../storage/database";
 import type { AILogEvent } from "../../core/events";
 
-interface SessionRow {
-  id: string;
-  started_at: string;
-  status: string;
-  ended_at: string | null;
-}
-
 export function runShow(flags: Map<string, string | boolean>): void {
-  let repoDir: string;
+  const { repoDir, ailogDir } = requireProjectDir();
+
+  const db = openDb(ailogDir);
   try {
-    repoDir = findProjectDir(process.cwd());
-  } catch {
-    console.error(`ai.log: no .ailog directory found in this workspace.\nRun "ai.log init" first.`);
-    process.exit(1);
-  }
-  const ailogDir = ensureAilogDir(repoDir);
+    const session = db.getActiveSession(repoDir) ?? db.getLatestSession(repoDir);
+    if (!session) {
+      console.log("ai.log: no session recorded yet.\nRun \"ai.log start\" before using your AI agents.");
+      return;
+    }
 
-  const db = new Database(path.join(ailogDir, "events.db"));
-  const session = db.getActiveSession(repoDir) ?? db.getLatestSession(repoDir);
-  if (!session) {
-    console.log("ai.log: no session recorded yet.\nRun \"ai.log start\" before using your AI agents.");
+    const limit = typeof flags.get("limit") === "string" ? clamp(parseInt(flags.get("limit") as string, 10), 10, 20000) : 500;
+    const events = db.recentEvents(session.id, limit).map(rowToEvent);
+
+    if (flags.get("json") === true) {
+      renderJson(session.id, repoDir, events);
+      return;
+    }
+
+    const view = viewOf(flags);
+    if (view !== null) {
+      renderView(view, events);
+      return;
+    }
+
+    renderText(session as SessionRow, events);
+  } finally {
     db.close();
-    return;
   }
-
-  const limit = typeof flags.get("limit") === "string" ? clamp(parseInt(flags.get("limit") as string, 10), 10, 20000) : 500;
-  const events = db.recentEvents(session.id, limit).map(rowToEvent);
-
-  if (flags.get("json") === true) {
-    renderJson(session.id, repoDir, events);
-    db.close();
-    return;
-  }
-
-  const view = viewOf(flags);
-  if (view !== null) {
-    renderView(view, events);
-    db.close();
-    return;
-  }
-
-  renderText(session as SessionRow, events);
-  db.close();
 }
 
 function viewOf(flags: Map<string, string | boolean>): "changes" | "commands" | "errors" | "security" | null {
@@ -121,7 +107,7 @@ function viewMatches(view: "changes" | "commands" | "errors" | "security", e: AI
     case "commands":
       return e.category === "command" || e.action === "execute" || e.category === "network";
     case "errors":
-      return e.action.includes("fail") || e.action.includes("error");
+      return e.action === "fail" || e.action === "error";
     case "security":
       return e.risk !== "none";
   }
@@ -184,17 +170,4 @@ function renderText(session: SessionRow, events: AILogEvent[]): void {
   console.log("".padEnd(46, "\u2500"));
   console.log();
   console.log(`${events.length} events recorded`);
-}
-
-function formatTime(iso: string): string {
-  const d = new Date(iso);
-  return [d.getHours(), d.getMinutes(), d.getSeconds()].map((n) => String(n).padStart(2, "0")).join(":");
-}
-
-function truncate(s: string, n: number): string {
-  return s.length <= n ? s : s.slice(0, n - 1) + "\u2026";
-}
-
-function clamp(n: number, lo: number, hi: number): number {
-  return Number.isFinite(n) ? Math.min(hi, Math.max(lo, n)) : lo;
 }

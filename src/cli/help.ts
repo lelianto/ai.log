@@ -1,4 +1,5 @@
-const VERSION = "0.1.0";
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const { version: VERSION } = require("../../package.json") as { version: string };
 
 export const HELP = `ai.log - see what your AI did.
 

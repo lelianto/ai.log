@@ -3,6 +3,7 @@ import * as path from "path";
 import { INBOX_DIR, OFFSETS_FILE } from "../core/paths";
 import type { Agent } from "../core/constants";
 import { isAgent } from "../core/constants";
+import { redactPayload } from "../adapters/common";
 
 export interface HookPayload {
   agent: Agent;
@@ -19,10 +20,11 @@ let busy = false;
  * Tracks consumed byte offsets so backlog is processed exactly once and never
  * advances past an incomplete line (a hook writing concurrently).
  */
-export function tailInbox(ailogDir: string, cb: (payload: HookPayload) => void): void {
+export function tailInbox(ailogDir: string, cb: (payload: HookPayload) => void): () => void {
   const inbox = path.join(ailogDir, INBOX_DIR);
   const offsetsFile = path.join(inbox, OFFSETS_FILE);
   const offsets: Record<string, number> = loadOffsets(offsetsFile);
+  let stopped = false;
 
   const processFiles = (): void => {
     if (busy) return;
@@ -75,7 +77,10 @@ export function tailInbox(ailogDir: string, cb: (payload: HookPayload) => void):
             if (p === null || typeof p !== "object") continue;
             if (!isAgent(p.agent)) continue;
             if (p.payload === null || typeof p.payload !== "object" || Array.isArray(p.payload)) continue;
-            cb({ agent: p.agent, at: typeof p.at === "string" ? p.at : "", payload: p.payload as Record<string, unknown> });
+            // Defense in depth: redact anything the writer left unredacted.
+            // Idempotent, so re-reading an already-redacted line is a no-op.
+            const payload = redactPayload(p.payload as Record<string, unknown>);
+            cb({ agent: p.agent, at: typeof p.at === "string" ? p.at : "", payload });
           }
           offsets[name] = offset + Buffer.byteLength(complete) + 1;
           saveOffsets(offsetsFile, offsets);
@@ -99,6 +104,7 @@ export function tailInbox(ailogDir: string, cb: (payload: HookPayload) => void):
   processFiles();
 
   const rescan = (): void => {
+    if (stopped) return;
     try {
       processFiles();
     } catch {
@@ -108,11 +114,19 @@ export function tailInbox(ailogDir: string, cb: (payload: HookPayload) => void):
   const timer = setInterval(rescan, 1500);
   timer.unref();
 
+  let watcher: fs.FSWatcher | null = null;
   try {
-    fs.watch(inbox, rescan).on("error", () => void 0);
+    watcher = fs.watch(inbox, rescan);
+    watcher.on("error", () => void 0);
   } catch {
     // poll fallback
   }
+
+  return () => {
+    stopped = true;
+    clearInterval(timer);
+    if (watcher) watcher.close();
+  };
 }
 
 function loadOffsets(file: string): Record<string, number> {

@@ -5,6 +5,9 @@ import { AILOG_DIR, DB_FILE, INBOX_DIR, SESSIONS_DIR } from "../../core/paths";
 import { gitRootOf } from "../../collectors/git";
 import { Database } from "../../storage/database";
 import { installAgentHooks } from "../../adapters/installer";
+import { agentStatusLine } from "../util";
+
+const AGENTS = ["claude", "codex", "gemini", "opencode"] as const;
 
 export function runInit(projectDir: string): void {
   const gitRoot = gitRootOf(projectDir);
@@ -16,7 +19,7 @@ export function runInit(projectDir: string): void {
   if (fs.existsSync(ailogDir) && fs.statSync(ailogDir).isDirectory()) {
     console.log(`\u2717 ai.log is already initialized in ${projectDir}`);
     console.log(`\n  Run: ai.log start`);
-    process.exit(1);
+    process.exit(0);
   }
 
   fs.mkdirSync(path.join(ailogDir, INBOX_DIR), { recursive: true });
@@ -34,12 +37,7 @@ export function runInit(projectDir: string): void {
   console.log(`Created\n${AILOG_DIR}/config.json\n${AILOG_DIR}/events.db\n${AILOG_DIR}/inbox/\n${AILOG_DIR}/sessions/\n`);
 
   const { installed, skipped } = installAgentHooks(projectDir, DEFAULT_CONFIG);
-  const agentLine = (a: string): string => {
-    if (installed.includes(a)) return "installed";
-    if (skipped.includes(a)) return "disabled";
-    return "not installed";
-  };
-  console.log(`Agent hooks\n${["claude", "codex", "gemini", "opencode"].map((a) => `  ${a}: ${agentLine(a)}`).join("\n")}\n`);
+  console.log(`Agent hooks\n${agentStatusLine(installed, skipped, AGENTS)}\n`);
 
   if (!gitRoot) {
     console.log("Note: not a Git repository - Git-based features (ai.log --changes) need Git.\n");

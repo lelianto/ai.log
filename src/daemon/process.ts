@@ -60,8 +60,6 @@ export function pollProcesses(config: AILogConfig, cb: (event: AILogEvent) => vo
                 observed: false,
               })
             );
-          } else {
-            lastSeen[agent] = now;
           }
         }
       }

@@ -63,7 +63,7 @@ export class DependencyTracker {
     for (const change of changes) {
       const action = change.type === "install" ? "install" : change.type === "remove" ? "remove" : "update";
       const metadata: Record<string, unknown> = {};
-      if (change.from) metadata.previousVersion = change.from;
+      if (change.from) metadata.version = change.from;
       if (change.to) metadata.version = change.to;
       if (change.type === "update") metadata.fromVersion = change.from;
       out.push(

@@ -9,9 +9,5 @@ export type HookPayload = Record<string, unknown>;
 
 export interface Adapter {
   name: Agent;
-  normalize(payload: HookPayload, fallbackCwd?: string): AILogEvent | null;
-}
-
-export interface AdapterRegistry {
-  get(agent: Agent): Adapter;
+  normalize(payload: HookPayload): AILogEvent | null;
 }

@@ -7,20 +7,17 @@ export interface GitStatusEntry {
   origPath?: string;
 }
 
-export interface GitNumstatLine {
-  path: string;
-  added: number;
-  deleted: number;
-}
+const GIT_TIMEOUT_MS = 8000;
+const GIT_MAX_BUFFER = 16 * 1024 * 1024;
 
 function runGit(cwd: string, args: string[]): string | null {
   try {
     const out = execFileSync("git", args, {
       cwd,
       encoding: "utf8",
-      timeout: 8000,
+      timeout: GIT_TIMEOUT_MS,
       stdio: ["ignore", "pipe", "ignore"],
-      maxBuffer: 16 * 1024 * 1024,
+      maxBuffer: GIT_MAX_BUFFER,
     });
     return out;
   } catch {
@@ -50,23 +47,6 @@ export function gitStatusPorcelain(cwd: string): GitStatusEntry[] {
   return entries;
 }
 
-export function gitNumstat(cwd: string, staged = false): GitNumstatLine[] {
-  const args = ["diff", "--numstat", "-z"];
-  if (staged) args.push("--cached");
-  args.push("--");
-  const out = runGit(cwd, args);
-  if (out === null) return [];
-  const lines: GitNumstatLine[] = [];
-  const parts = out.split("\0");
-  for (let i = 0; i + 2 < parts.length; i += 3) {
-    const added = Number.parseInt(parts[i], 10);
-    const deleted = Number.parseInt(parts[i + 1], 10);
-    const path = parts[i + 2];
-    if (path) lines.push({ path, added: Number.isNaN(added) ? 0 : added, deleted: Number.isNaN(deleted) ? 0 : deleted });
-  }
-  return lines;
-}
-
 export function gitBranch(cwd: string): string | null {
   const out = runGit(cwd, ["branch", "--show-current"]);
   if (out === null) return null;
@@ -77,20 +57,6 @@ export function gitBranch(cwd: string): string | null {
 export function gitHead(cwd: string): string | null {
   const out = runGit(cwd, ["rev-parse", "HEAD"]);
   return out ? out.trim() : null;
-}
-
-export interface GitSnapshot {
-  branch: string | null;
-  head: string | null;
-  status: GitStatusEntry[];
-  hasGit: boolean;
-}
-
-export function gitSnapshot(cwd: string): GitSnapshot {
-  const branch = gitBranch(cwd);
-  const head = gitHead(cwd);
-  const status = gitStatusPorcelain(cwd);
-  return { branch, head, status, hasGit: branch !== null || head !== null };
 }
 
 export function isGitRepo(cwd: string): boolean {
