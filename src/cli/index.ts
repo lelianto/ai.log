@@ -8,8 +8,11 @@ import { runStatus } from "./commands/status";
 import { runStart, runStop } from "./commands/session";
 import { clearHistory } from "./commands/clear";
 import { runInstall } from "./commands/install";
+import { runUndo } from "./commands/undo";
+import { runReplay } from "./commands/replay";
+import { runReport } from "./commands/report";
 
-const KNOWN_COMMANDS = new Set(["init", "start", "stop", "status", "clear", "ingest", "install", "help", "version"]);
+const KNOWN_COMMANDS = new Set(["init", "start", "stop", "status", "clear", "ingest", "install", "undo", "replay", "report", "help", "version"]);
 
 export function main(argv: string[]): void {
   const { command, flags } = parseArgs(argv);
@@ -59,6 +62,15 @@ export function main(argv: string[]): void {
       }
       case "install":
         runInstall();
+        break;
+      case "undo":
+        runUndo(flags);
+        break;
+      case "replay":
+        runReplay(flags);
+        break;
+      case "report":
+        runReport(flags);
         break;
       default:
         process.exit(1);

@@ -5,7 +5,7 @@ import { loadConfig } from "../../core/config";
 import { CONFIG_FILE } from "../../core/paths";
 import { installAgentHooks } from "../../adapters/installer";
 
-const AGENTS = ["claude", "codex", "gemini", "opencode"] as const;
+const AGENTS = ["claude", "codex", "gemini", "opencode", "cursor", "cline"] as const;
 
 export function runInstall(): void {
   const { repoDir, ailogDir } = requireProjectDir();

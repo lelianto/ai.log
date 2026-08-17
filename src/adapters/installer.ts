@@ -44,6 +44,8 @@ export function installAgentHooks(projectDir: string, config: AILogConfig): { in
   attempt("codex", () => installCodex(projectDir));
   attempt("gemini", () => installGemini(projectDir));
   attempt("opencode", () => writeOpenCodePlugin(projectDir));
+  attempt("cursor", () => installCursor(projectDir));
+  attempt("cline", () => installCline(projectDir));
 
   return { installed, skipped };
 }
@@ -102,6 +104,44 @@ function installGemini(projectDir: string): boolean {
     SessionStart: [{ hooks: [{ type: "command", command: ingestCommand("gemini") }] }],
     AfterTool: [{ matcher: "*", hooks: [{ type: "command", command: ingestCommand("gemini") }] }],
     SessionEnd: [{ hooks: [{ type: "command", command: ingestCommand("gemini") }] }],
+  };
+
+  mergeHooks(settings, groups);
+  writeJson(file, settings);
+  return true;
+}
+
+function installCursor(projectDir: string): boolean {
+  const dir = path.join(projectDir, ".cursor");
+  fs.mkdirSync(dir, { recursive: true });
+  const file = path.join(dir, "settings.json");
+  const settings = readJson(file, {});
+
+  const groups: Record<string, HookGroup[]> = {
+    SessionStart: [{ matcher: "startup|resume", hooks: [{ type: "command", command: ingestCommand("cursor") }] }],
+    PostToolUse: [
+      { matcher: "Read", hooks: [{ type: "command", command: ingestCommand("cursor") }] },
+      { matcher: "Write|Edit|MultiEdit", hooks: [{ type: "command", command: ingestCommand("cursor") }] },
+      { matcher: "Bash", hooks: [{ type: "command", command: ingestCommand("cursor") }] },
+    ],
+    SessionEnd: [{ matcher: "*", hooks: [{ type: "command", command: ingestCommand("cursor") }] }],
+  };
+
+  mergeHooks(settings, groups);
+  writeJson(file, settings);
+  return true;
+}
+
+function installCline(projectDir: string): boolean {
+  const dir = path.join(projectDir, ".cline");
+  fs.mkdirSync(dir, { recursive: true });
+  const file = path.join(dir, "settings.json");
+  const settings = readJson(file, {});
+
+  const groups: Record<string, HookGroup[]> = {
+    SessionStart: [{ hooks: [{ type: "command", command: ingestCommand("cline") }] }],
+    AfterTool: [{ matcher: "*", hooks: [{ type: "command", command: ingestCommand("cline") }] }],
+    SessionEnd: [{ hooks: [{ type: "command", command: ingestCommand("cline") }] }],
   };
 
   mergeHooks(settings, groups);

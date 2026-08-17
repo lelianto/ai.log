@@ -90,6 +90,11 @@ export class Database {
     return (row as SessionRow) ?? null;
   }
 
+  getSession(id: string): SessionRow | null {
+    const row = this.db.prepare(`SELECT * FROM sessions WHERE id = ?`).get(id);
+    return (row as SessionRow) ?? null;
+  }
+
   closeActiveSessions(repository: string, endedAt: string): void {
     this.db
       .prepare(`UPDATE sessions SET status = 'closed', ended_at = ? WHERE repository = ? AND status = 'active'`)

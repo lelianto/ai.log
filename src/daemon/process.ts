@@ -9,6 +9,8 @@ const AGENT_PROCESSES: Record<string, string[]> = {
   opencode: ["opencode"],
   gemini: ["gemini"],
   cursor: ["cursor", "Cursor"],
+  aider: ["aider"],
+  cline: ["cline", "roo-code"],
 };
 
 const POLL_MS = 3000;

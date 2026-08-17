@@ -21,7 +21,7 @@ export function startSession(db: Database, repository: string, now = new Date())
     status: "active",
     branch,
     head,
-    meta: JSON.stringify({ baselinePathSet: baseline.map((e) => e.path) }),
+    meta: JSON.stringify({ baselinePathSet: baseline.map((e) => e.path), baselineHead: head ?? null }),
   };
   db.insertSession(session);
   return { session, baseline };

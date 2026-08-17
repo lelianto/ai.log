@@ -7,7 +7,7 @@ import { Database } from "../../storage/database";
 import { installAgentHooks } from "../../adapters/installer";
 import { agentStatusLine } from "../util";
 
-const AGENTS = ["claude", "codex", "gemini", "opencode"] as const;
+const AGENTS = ["claude", "codex", "gemini", "opencode", "cursor", "cline"] as const;
 
 export function runInit(projectDir: string): void {
   const gitRoot = gitRootOf(projectDir);

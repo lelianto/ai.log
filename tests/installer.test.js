@@ -5,7 +5,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { installAgentHooks } from "../dist/adapters/installer.js";
 
-const CONFIG_ALL = { agents: { claude: true, codex: true, gemini: true, opencode: true }, ignore: [] }
+const CONFIG_ALL = { agents: { claude: true, codex: true, gemini: true, opencode: true, cursor: true, aider: true, cline: true }, ignore: [] }
 
 function tmpProject() {
   return fs.mkdtempSync(path.join(os.tmpdir(), "ailog-install-"));
@@ -24,7 +24,7 @@ test("installer writes hook configs and preserves existing user settings", () =>
   fs.writeFileSync(path.join(dir, ".claude", "settings.json"), JSON.stringify(userHook));
 
   const { installed } = installAgentHooks(dir, CONFIG_ALL);
-  assert.deepEqual(installed.sort(), ["claude", "codex", "gemini", "opencode"]);
+  assert.deepEqual(installed.sort(), ["claude", "cline", "codex", "cursor", "gemini", "opencode"]);
 
   const claude = JSON.parse(fs.readFileSync(path.join(dir, ".claude", "settings.json"), "utf8"));
   assert.equal(claude.customKey.keep, "me");
@@ -55,10 +55,10 @@ test("re-running installer does not duplicate hooks", () => {
 
 test("disabled agents are skipped and do not create files", () => {
   const dir = tmpProject();
-  const { installed, skipped } = installAgentHooks(dir, { agents: { claude: false, codex: true, gemini: false, opencode: false }, ignore: [] });
+  const { installed, skipped } = installAgentHooks(dir, { agents: { claude: false, codex: true, gemini: false, opencode: false, cursor: false, aider: false, cline: false }, ignore: [] });
   assert.equal(installed.length, 1);
   assert.deepEqual(installed, ["codex"]);
-  assert.equal(skipped.length, 3);
+  assert.equal(skipped.length, 5);
   assert.ok(!fs.existsSync(path.join(dir, ".claude")));
   assert.ok(!fs.existsSync(path.join(dir, ".gemini")));
   assert.ok(!fs.existsSync(path.join(dir, ".opencode")));

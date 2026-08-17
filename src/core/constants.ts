@@ -1,4 +1,4 @@
-export const ACTORS = ["human", "claude", "codex", "opencode", "gemini", "cursor", "system", "unknown"] as const;
+export const ACTORS = ["human", "claude", "codex", "opencode", "gemini", "cursor", "aider", "cline", "system", "unknown"] as const;
 export type Actor = (typeof ACTORS)[number];
 
 export const CATEGORIES = [
@@ -35,7 +35,7 @@ export function isRisk(v: unknown): v is Risk {
   return typeof v === "string" && (RISKS as readonly string[]).includes(v);
 }
 
-export const AGENTS = ["claude", "codex", "opencode", "gemini"] as const;
+export const AGENTS = ["claude", "codex", "opencode", "gemini", "cursor", "aider", "cline"] as const;
 export type Agent = (typeof AGENTS)[number];
 
 export function isAgent(v: unknown): v is Agent {

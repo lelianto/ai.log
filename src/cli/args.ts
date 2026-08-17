@@ -16,6 +16,8 @@ export const FLAG_DEFAULTS: Record<string, "boolean" | "string"> = {
   agent: "string",
   cwd: "string",
   limit: "string",
+  session: "string",
+  period: "string",
 };
 
 export function parseArgs(argv: string[]): ParsedArgs {

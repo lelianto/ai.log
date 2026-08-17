@@ -7,7 +7,7 @@
 A local-first activity log for AI coding agents. Every file read, every command
 run, every failure — recorded honestly, kept on your machine, never sent anywhere.
 
-**Claude Code** · **Codex** · **OpenCode** · **Gemini CLI**
+**Claude Code** · **Codex** · **OpenCode** · **Gemini CLI** · **Cursor** · **Aider** · **Cline**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Node](https://img.shields.io/badge/node-%3E%3D18-339933)](https://nodejs.org)
@@ -21,9 +21,10 @@ run, every failure — recorded honestly, kept on your machine, never sent anywh
 Your AI pair programmer works fast. *Do you know what it actually touched?*
 
 **ai.log** answers that question. It watches your project while Claude Code,
-Codex, OpenCode, or Gemini CLI work, and records **what happened** — files read,
-files written, commands run, tests that failed, dependencies that changed, and
-anything that looks dangerous. Then it shows you a calm, readable timeline.
+Codex, OpenCode, Gemini CLI, Cursor, Aider, or Cline work, and records
+**what happened** — files read, files written, commands run, tests that failed,
+dependencies that changed, and anything that looks dangerous. Then it shows you
+a calm, readable timeline.
 
 ```
 $ ai.log
@@ -56,8 +57,9 @@ Summary            128 command, 56 filesystem, 3 test, 1 security
 - 📦 **Local-first** — SQLite + JSONL in `.ailog/`, git-ignored by default
 - 🧩 **Drop-in** — installs non-destructive hooks into your agents' configs;
   re-runnable, reversible, preserves your existing settings
-- 📊 **Git-aware** — tracks branch/HEAD per session, watches `package.json` for
-  dependency installs/updates/removals
+- 📊 **Git-aware** — tracks branch/HEAD per session, watches dependency
+  manifests across ecosystems (npm, pnpm, yarn, Go, Cargo, Python, PHP, Ruby)
+  for installs/updates/removals
 
 ---
 
@@ -77,7 +79,7 @@ cd my-project
 ai.log init     # one-time: creates .ailog/ + installs agent hooks
 ai.log start    # start recording (background daemon)
 
-# ... use Claude Code, Codex, OpenCode, or Gemini CLI as usual ...
+# ... use Claude Code, Codex, OpenCode, Gemini CLI, Cursor, Aider, Cline ...
 
 ai.log          # see what your agents did
 ai.log --security  # anything risky?
@@ -104,8 +106,15 @@ views.
 | `ai.log --errors` | Show failures |
 | `ai.log --security` | Show potentially sensitive activity |
 | `ai.log --json` | Dump raw normalized events as JSON |
+| `ai.log replay` | Full chronological session timeline (exit codes, gaps) |
+| `ai.log report` | Daily / weekly activity summary (`--period daily\|weekly\|all`) |
+| `ai.log undo` | Revert what an agent changed during a session (`--yes`) |
 | `ai.log clear` | Delete all recorded history (asks for confirmation, or `--yes`) |
+| `ai.log install` | Re-install agent hooks (non-destructive merge) |
 | `ai.log --help` / `--version` | Help / version |
+
+Options: `--session <id>` target a specific session, `--limit <n>` cap events,
+`--period <daily\|weekly>` report period, `--yes` skip confirmation prompts.
 
 ---
 
@@ -117,6 +126,8 @@ views.
 │  Codex         .codex/hooks.json                      │
 │  Gemini CLI    .gemini/settings.json                  │
 │  OpenCode      .opencode/plugin/ailog.js              │
+│  Cursor        .cursor/settings.json                  │
+│  Cline         .cline/settings.json                   │
 └───────────────────────┬──────────────────────────────┘
                         │ JSONL, one line per event
                         ▼
@@ -256,11 +267,14 @@ node /path/to/ai.log/dist/cli/index.js stop
 ## 🗺️ Roadmap
 
 - [x] Publish to npm (`ai.log-cli`)
-- [ ] `ai.log undo` — diff/revert what an agent changed
-- [ ] Session replay with full command/exit timeline
-- [ ] Support more agents (Aider, Cursor, Cline, …)
-- [ ] `ai.log report` — daily/weekly summaries for standups
-- [ ] Dependency manifests beyond `package.json` (pnpm, yarn, Go, Cargo)
+- [x] `ai.log undo` — diff/revert what an agent changed
+- [x] Session replay with full command/exit timeline
+- [x] Support more agents (Aider, Cursor, Cline, …)
+- [x] `ai.log report` — daily/weekly summaries for standups
+- [x] Dependency manifests beyond `package.json` (pnpm, yarn, Go, Cargo)
+- [ ] `ai.log undo` — support non-Git working trees
+- [ ] Session replay — interactive player
+- [ ] More agents (Cody, Zed, Windsurf, …)
 
 ---
 

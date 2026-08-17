@@ -14,6 +14,9 @@ export interface AILogConfig {
     codex: boolean;
     opencode: boolean;
     gemini: boolean;
+    cursor: boolean;
+    aider: boolean;
+    cline: boolean;
   };
 }
 
@@ -49,6 +52,9 @@ export const DEFAULT_CONFIG: AILogConfig = {
     codex: true,
     opencode: true,
     gemini: true,
+    cursor: true,
+    aider: true,
+    cline: true,
   },
 };
 
@@ -87,7 +93,7 @@ function validateConfig(cfg: unknown): AILogConfig {
   if (c.agents !== undefined) {
     if (c.agents === null || typeof c.agents !== "object") throw new Error("config agents must be an object");
     const a = c.agents as Record<string, unknown>;
-    for (const key of ["claude", "codex", "opencode", "gemini"] as const) {
+    for (const key of ["claude", "codex", "opencode", "gemini", "cursor", "aider", "cline"] as const) {
       if (a[key] !== undefined) {
         if (typeof a[key] !== "boolean") throw new Error(`config agents.${key} must be a boolean`);
         out.agents[key] = a[key] as boolean;
