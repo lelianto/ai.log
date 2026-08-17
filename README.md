@@ -12,7 +12,7 @@ run, every failure — recorded honestly, kept on your machine, never sent anywh
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Node](https://img.shields.io/badge/node-%3E%3D18-339933)](https://nodejs.org)
 [![TypeScript](https://img.shields.io/badge/types-TypeScript%20strict-3178C6)](https://www.typescriptlang.org)
-[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/your-handle/ai.log/pulls)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/lelianto/ai.log/pulls)
 
 ---
 
@@ -63,10 +63,10 @@ Summary            128 command, 56 filesystem, 3 test, 1 security
 
 ## 🚀 Quick start
 
-> Requires **Node.js ≥ 18**. npm package coming soon — link it locally:
+> Requires **Node.js ≥ 18**:
 
 ```sh
-npm install -g .
+npm install -g ai.log-cli
 ```
 
 Then, in any project you work on with an AI agent:
@@ -255,7 +255,7 @@ node /path/to/ai.log/dist/cli/index.js stop
 
 ## 🗺️ Roadmap
 
-- [ ] Publish to npm (`ai.log`)
+- [x] Publish to npm (`ai.log-cli`)
 - [ ] `ai.log undo` — diff/revert what an agent changed
 - [ ] Session replay with full command/exit timeline
 - [ ] Support more agents (Aider, Cursor, Cline, …)
