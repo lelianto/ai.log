@@ -19,7 +19,7 @@ export function runInit(projectDir: string): void {
   if (fs.existsSync(ailogDir) && fs.statSync(ailogDir).isDirectory()) {
     console.log(`\u2717 ai.log is already initialized in ${projectDir}`);
     console.log(`\n  Run: ai.log start`);
-    process.exit(0);
+    process.exit(1);
   }
 
   fs.mkdirSync(path.join(ailogDir, INBOX_DIR), { recursive: true });

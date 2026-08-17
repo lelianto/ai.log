@@ -18,7 +18,7 @@ export function clearHistory(flags: Map<string, string | boolean>): void {
     }
     if (!/^y(es)?$/i.test(answer.trim())) {
       console.log("Aborted.");
-      return;
+      process.exit(1);
     }
   }
 

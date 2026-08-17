@@ -2,7 +2,7 @@ import * as path from "path";
 import { requireProjectDir, openDb, fail } from "../util";
 import { isDaemonRunning } from "../../core/project";
 import { spawnDaemon } from "../../daemon/spawn";
-import { isPidAlive, readDaemonPid } from "../../daemon/state";
+import { isPidAlive, readDaemonPid, removeDaemonPid } from "../../daemon/state";
 
 export function runStart(): void {
   const { repoDir, ailogDir } = requireProjectDir();
@@ -60,6 +60,7 @@ export function runStop(): void {
   const pid = readDaemonPid(ailogDir);
 
   if (pid === null || !isPidAlive(pid)) {
+    removeDaemonPid(ailogDir);
     console.log("ai.log is not running.");
     return;
   }
