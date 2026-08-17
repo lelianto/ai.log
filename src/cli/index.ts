@@ -6,8 +6,9 @@ import { runShow } from "./commands/show";
 import { runStatus } from "./commands/status";
 import { runStart, runStop } from "./commands/session";
 import { clearHistory } from "./commands/clear";
+import { runInstall } from "./commands/install";
 
-const KNOWN_COMMANDS = new Set(["init", "start", "stop", "status", "clear", "ingest", "help", "version"]);
+const KNOWN_COMMANDS = new Set(["init", "start", "stop", "status", "clear", "ingest", "install", "help", "version"]);
 
 export function main(argv: string[]): void {
   const { command, flags } = parseArgs(argv);
@@ -54,6 +55,9 @@ export function main(argv: string[]): void {
       runIngest(typeof agent === "string" ? agent : undefined, typeof cwd === "string" ? cwd : undefined);
       break;
     }
+    case "install":
+      runInstall();
+      break;
     default:
       process.exit(1);
   }

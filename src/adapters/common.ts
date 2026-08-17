@@ -1,5 +1,6 @@
 import type { HookPayload } from "./types";
 import { MAX_TARGET_LENGTH, sanitizeString } from "../core/events";
+import { redactCommand } from "../security/redact";
 
 export function str(v: unknown): string | undefined {
   return typeof v === "string" && v.length > 0 ? v : undefined;
@@ -40,15 +41,15 @@ export function commandOf(payload: HookPayload | undefined): string | undefined 
   if (!payload) return undefined;
   const toolInput = (payload.tool_input ?? payload.input ?? payload.arguments ?? {}) as Record<string, unknown> | undefined;
   const direct = firstString(toolInput, "command", "cmd", "shell_command");
-  if (direct) return direct;
+  if (direct) return redactCommand(direct);
   const list = Array.isArray(toolInput?.commands) ? (toolInput.commands as unknown[]) : undefined;
   if (list) {
     const parts = list
       .map((c) => (typeof c === "string" ? c.trim() : typeof c === "object" && c !== null && typeof (c as Record<string, unknown>).command === "string" ? ((c as Record<string, unknown>).command as string).trim() : ""))
       .filter((s) => s.length > 0);
-    if (parts.length > 0) return parts.join("\n");
+    if (parts.length > 0) return redactCommand(parts.join("\n"));
   }
-  if (typeof toolInput?.code === "string" && toolInput.code.length < 2048) return toolInput.code;
+  if (typeof toolInput?.code === "string" && toolInput.code.length < 2048) return redactCommand(toolInput.code);
   return undefined;
 }
 

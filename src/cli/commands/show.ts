@@ -3,6 +3,13 @@ import { findProjectDir, ensureAilogDir } from "../../core/project";
 import { Database, rowToEvent } from "../../storage/database";
 import type { AILogEvent } from "../../core/events";
 
+interface SessionRow {
+  id: string;
+  started_at: string;
+  status: string;
+  ended_at: string | null;
+}
+
 export function runShow(flags: Map<string, string | boolean>): void {
   let repoDir: string;
   try {
@@ -21,7 +28,8 @@ export function runShow(flags: Map<string, string | boolean>): void {
     return;
   }
 
-  const events = db.recentEvents(session.id, 500).map(rowToEvent);
+  const limit = typeof flags.get("limit") === "string" ? clamp(parseInt(flags.get("limit") as string, 10), 10, 20000) : 500;
+  const events = db.recentEvents(session.id, limit).map(rowToEvent);
 
   if (flags.get("json") === true) {
     renderJson(session.id, repoDir, events);
@@ -29,8 +37,23 @@ export function runShow(flags: Map<string, string | boolean>): void {
     return;
   }
 
-  renderText(session, events);
+  const view = viewOf(flags);
+  if (view !== null) {
+    renderView(view, events);
+    db.close();
+    return;
+  }
+
+  renderText(session as SessionRow, events);
   db.close();
+}
+
+function viewOf(flags: Map<string, string | boolean>): "changes" | "commands" | "errors" | "security" | null {
+  if (flags.get("changes") === true) return "changes";
+  if (flags.get("commands") === true) return "commands";
+  if (flags.get("errors") === true) return "errors";
+  if (flags.get("security") === true) return "security";
+  return null;
 }
 
 function renderJson(sessionId: string, repository: string, events: AILogEvent[]): void {
@@ -47,7 +70,70 @@ function renderJson(sessionId: string, repository: string, events: AILogEvent[])
   );
 }
 
-function renderText(session: { id: string; started_at: string; status: string }, events: AILogEvent[]): void {
+function renderView(view: "changes" | "commands" | "errors" | "security", events: AILogEvent[]): void {
+  console.log(view.toUpperCase());
+  console.log("".padEnd(46, "\u2500"));
+  console.log();
+  const filtered = events.filter((e) => viewMatches(view, e));
+  if (filtered.length === 0) {
+    console.log(`No ${view} recorded in this session.`);
+    return;
+  }
+
+  if (view === "changes") {
+    const byTarget = new Map<string, { actions: Set<string>; actors: Set<string> }>();
+    for (const e of filtered) {
+      const key = e.target ?? "(unknown)";
+      const entry = byTarget.get(key) ?? { actions: new Set(), actors: new Set() };
+      entry.actions.add(e.action);
+      entry.actors.add(e.actor);
+      byTarget.set(key, entry);
+    }
+    const lines = [...byTarget.entries()].sort((a, b) => a[0].localeCompare(b[0]));
+    for (const [target, entry] of lines) {
+      const actions = [...entry.actions].sort().join("/");
+      const actors = [...entry.actors].join(", ");
+      console.log(`${actions.padEnd(10)} ${truncate(target, 36).padEnd(38)} ${actors}`);
+    }
+    console.log();
+    console.log(`${lines.length} files changed`);
+    return;
+  }
+
+  const shown = filtered.slice(-60);
+  for (const e of shown) {
+    const time = formatTime(e.timestamp);
+    const risk = e.risk !== "none" ? ` [${e.risk}]` : "";
+    const meta = commandSnippet(e) ?? "";
+    console.log(`${time}  ${e.actor.padEnd(9)} ${e.action.padEnd(11)} ${meta || truncate(e.target ?? "", 30)}${risk}`);
+  }
+  if (filtered.length > shown.length) {
+    console.log(`\n... ${filtered.length - shown.length} more ...`);
+  }
+  console.log();
+  console.log(`${filtered.length} events`);
+}
+
+function viewMatches(view: "changes" | "commands" | "errors" | "security", e: AILogEvent): boolean {
+  switch (view) {
+    case "changes":
+      return e.category === "filesystem" && ["create", "write", "delete", "move", "rename"].includes(e.action);
+    case "commands":
+      return e.category === "command" || e.action === "execute" || e.category === "network";
+    case "errors":
+      return e.action.includes("fail") || e.action.includes("error");
+    case "security":
+      return e.risk !== "none";
+  }
+}
+
+function commandSnippet(e: AILogEvent): string | null {
+  if (e.category !== "command") return null;
+  const status = e.metadata?.exitCode !== undefined ? `(exit ${e.metadata.exitCode})` : "";
+  return `${truncate(e.target ?? "", 40)} ${status}`;
+}
+
+function renderText(session: SessionRow, events: AILogEvent[]): void {
   console.log("ai.log");
   console.log("".padEnd(46, "\u2500"));
   console.log();
@@ -55,6 +141,24 @@ function renderText(session: { id: string; started_at: string; status: string },
   console.log();
   console.log(`Started\n${formatTime(session.started_at)}`);
   console.log();
+  const ended = session.ended_at ? new Date(session.ended_at).getTime() : Date.now();
+  const duration = Math.max(0, Math.round((ended - new Date(session.started_at).getTime()) / 60000));
+  console.log(`Duration\n${duration} min`);
+  console.log();
+
+  const actors = [...new Set(events.map((e) => e.actor))].filter((a) => a !== "unknown").sort();
+  const byCategory = new Map<string, number>();
+  for (const e of events) {
+    byCategory.set(e.category, (byCategory.get(e.category) ?? 0) + 1);
+  }
+  const summary = [...byCategory.entries()].map(([c, n]) => `${n} ${c}`).join(", ");
+  console.log(`Summary\n${summary}`);
+  if (actors.length > 0) {
+    console.log();
+    console.log(`Actors\n${actors.join(", ")}`);
+  }
+  console.log();
+
   if (events.length === 0) {
     console.log("No activity recorded yet.");
     console.log();
@@ -89,4 +193,8 @@ function formatTime(iso: string): string {
 
 function truncate(s: string, n: number): string {
   return s.length <= n ? s : s.slice(0, n - 1) + "\u2026";
+}
+
+function clamp(n: number, lo: number, hi: number): number {
+  return Number.isFinite(n) ? Math.min(hi, Math.max(lo, n)) : lo;
 }

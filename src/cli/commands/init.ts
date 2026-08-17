@@ -4,6 +4,7 @@ import { DEFAULT_CONFIG, writeConfig } from "../../core/config";
 import { AILOG_DIR, DB_FILE, INBOX_DIR, SESSIONS_DIR } from "../../core/paths";
 import { gitRootOf } from "../../collectors/git";
 import { Database } from "../../storage/database";
+import { installAgentHooks } from "../../adapters/installer";
 
 export function runInit(projectDir: string): void {
   const gitRoot = gitRootOf(projectDir);
@@ -31,6 +32,15 @@ export function runInit(projectDir: string): void {
   console.log("\u2713 ai.log initialized\n");
   console.log(`Project\n${projectDir}\n`);
   console.log(`Created\n${AILOG_DIR}/config.json\n${AILOG_DIR}/events.db\n${AILOG_DIR}/inbox/\n${AILOG_DIR}/sessions/\n`);
+
+  const { installed, skipped } = installAgentHooks(projectDir, DEFAULT_CONFIG);
+  const agentLine = (a: string): string => {
+    if (installed.includes(a)) return "installed";
+    if (skipped.includes(a)) return "disabled";
+    return "not installed";
+  };
+  console.log(`Agent hooks\n${["claude", "codex", "gemini", "opencode"].map((a) => `  ${a}: ${agentLine(a)}`).join("\n")}\n`);
+
   if (!gitRoot) {
     console.log("Note: not a Git repository - Git-based features (ai.log --changes) need Git.\n");
   }
