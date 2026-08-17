@@ -1,6 +1,6 @@
 {
   "name": "ai.log-cli",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "A local-first activity log for AI coding agents. See what your AI did.",
   "license": "MIT",
   "keywords": [
